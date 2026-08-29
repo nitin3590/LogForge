@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "logforge/index/indexer.hpp"
-#include "logforge/io/file_reader.hpp"
+#include "logforge/io/parallel_file_reader.hpp"
 #include "logforge/parser/parser.hpp"
 #include "logforge/search/indexed_search_engine.hpp"
 #include "logforge/stats/advanced_statistics_engine.hpp"
@@ -138,7 +138,7 @@ void print_spikes(const AdvancedStatistics& advanced) {
 
 struct CLI::Impl {
     Parser parser;
-    FileReader reader;
+    ParallelFileReader reader;
     Indexer indexer;
     IndexedSearchEngine search_engine{indexer};
     StatisticsEngine stats_engine;
