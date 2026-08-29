@@ -9,9 +9,10 @@
 #include <string>
 #include <vector>
 
+#include "logforge/index/indexer.hpp"
 #include "logforge/io/file_reader.hpp"
 #include "logforge/parser/parser.hpp"
-#include "logforge/search/search_engine.hpp"
+#include "logforge/search/indexed_search_engine.hpp"
 #include "logforge/stats/statistics_engine.hpp"
 
 namespace logforge {
@@ -90,7 +91,8 @@ void print_top_services(const LogStatistics& stats, std::size_t limit = 10) {
 struct CLI::Impl {
     Parser parser;
     FileReader reader;
-    SearchEngine search_engine;
+    Indexer indexer;
+    IndexedSearchEngine search_engine{indexer};
     StatisticsEngine stats_engine;
 };
 
@@ -131,11 +133,14 @@ int CLI::run(int argc, char* argv[]) {
         return 1;
     }
 
-    const auto entries = impl_->reader.read_all(log_file, impl_->parser);
-    spdlog::info("Parsed {} entries from {}", entries.size(), log_file.string());
+    auto entries = impl_->reader.read_all(log_file, impl_->parser);
+    const auto entry_count = entries.size();
+    impl_->indexer.build(std::move(entries));
+    const auto& indexed_entries = impl_->indexer.entries();
+    spdlog::info("Parsed and indexed {} entries from {}", entry_count, log_file.string());
 
     if (command == "stats") {
-        print_stats(impl_->stats_engine.compute(entries));
+        print_stats(impl_->stats_engine.compute(indexed_entries));
         return 0;
     }
 
@@ -145,7 +150,7 @@ int CLI::run(int argc, char* argv[]) {
             return 1;
         }
         const std::string query = argv[3];
-        const auto results = impl_->search_engine.search(entries, query);
+        const auto results = impl_->search_engine.search(query);
         std::cout << "Found " << results.size() << " matching entries:\n\n";
         for (const auto& entry : results) {
             std::cout << entry.to_string() << "\n";
@@ -154,17 +159,17 @@ int CLI::run(int argc, char* argv[]) {
     }
 
     if (command == "timeline") {
-        print_timeline(impl_->stats_engine.compute(entries));
+        print_timeline(impl_->stats_engine.compute(indexed_entries));
         return 0;
     }
 
     if (command == "top-errors") {
-        print_top_errors(impl_->stats_engine.compute(entries));
+        print_top_errors(impl_->stats_engine.compute(indexed_entries));
         return 0;
     }
 
     if (command == "top-services") {
-        print_top_services(impl_->stats_engine.compute(entries));
+        print_top_services(impl_->stats_engine.compute(indexed_entries));
         return 0;
     }
 

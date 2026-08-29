@@ -1,21 +1,13 @@
 #include "logforge/search/search_engine.hpp"
 
-#include <algorithm>
-#include <cctype>
 #include <string>
 
 #include "logforge/core/log_level.hpp"
+#include "logforge/core/string_utils.hpp"
 
 namespace logforge {
 
 namespace {
-
-[[nodiscard]] std::string to_lower(std::string_view input) {
-    std::string result(input);
-    std::transform(result.begin(), result.end(), result.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    return result;
-}
 
 [[nodiscard]] bool contains_insensitive(std::string_view haystack, std::string_view needle) {
     if (needle.empty()) {

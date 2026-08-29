@@ -44,7 +44,9 @@ add_library(logforge_lib
     src/core/log_entry.cpp
     src/parser/parser.cpp
     src/io/file_reader.cpp
+    src/index/indexer.cpp
     src/search/search_engine.cpp
+    src/search/indexed_search_engine.cpp
     src/stats/statistics_engine.cpp
     src/cli/cli.cpp
 )
