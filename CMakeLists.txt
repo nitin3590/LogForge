@@ -38,12 +38,16 @@ FetchContent_Declare(
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(nlohmann_json)
 
+find_package(Threads REQUIRED)
+
 # Library
 add_library(logforge_lib
     src/core/log_level.cpp
     src/core/log_entry.cpp
     src/parser/parser.cpp
     src/io/file_reader.cpp
+    src/io/parallel_file_reader.cpp
+    src/concurrency/thread_pool.cpp
     src/index/indexer.cpp
     src/search/search_engine.cpp
     src/search/indexed_search_engine.cpp
@@ -62,6 +66,7 @@ target_link_libraries(logforge_lib
     PUBLIC
         spdlog::spdlog
         nlohmann_json::nlohmann_json
+        Threads::Threads
 )
 
 # Executable
