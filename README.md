@@ -17,11 +17,12 @@ Modern systems generate enormous log volumes. Developers need fast answers:
 
 LogForge demonstrates production-grade C++ engineering: RAII, smart pointers, streaming I/O, multithreading (upcoming), indexing, benchmarking, and comprehensive testing.
 
-## Features (Phase 1)
+## Features (Phase 1–2)
 
 - **Streaming parser** — process files larger than system memory
 - **Structured parsing** — timestamp, level, service, message, metadata
-- **Search** — query by level, service, keyword (case-insensitive)
+- **Hash-based indexing** — O(1) queries by level, service, keyword, and hour
+- **Search** — indexed exact-match with substring fallback
 - **Statistics** — error/warn/info counts, top services, top errors, hourly timeline
 - **CLI** — `stats`, `search`, `timeline`, `top-errors`, `top-services`
 
@@ -33,7 +34,8 @@ LogForge/
 │   ├── core/             # LogEntry, LogLevel
 │   ├── parser/           # IParser, Parser
 │   ├── io/               # IFileReader, FileReader
-│   ├── search/           # ISearchEngine, SearchEngine
+│   ├── index/            # IIndexer, Indexer
+│   ├── search/           # ISearchEngine, SearchEngine, IndexedSearchEngine
 │   ├── stats/            # IStatisticsEngine, StatisticsEngine
 │   └── cli/              # CLI
 ├── src/                  # Implementations
@@ -144,7 +146,7 @@ LogForge uses streaming I/O with a 64 KB read buffer. The parser operates in O(n
 ## Roadmap
 
 - [x] Phase 1: Parser, streaming, search, statistics, CLI
-- [ ] Phase 2: Hash-based indexing for O(1) queries
+- [x] Phase 2: Hash-based indexing for O(1) queries
 - [ ] Phase 3: Advanced statistics and spike detection
 - [ ] Phase 4: Multithreaded chunk processing with thread pool
 - [ ] Phase 5: Live file monitoring (`watch` command)

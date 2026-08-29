@@ -15,15 +15,16 @@ LogForge is a high-performance log analytics engine built with Modern C++20. It 
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│  FileReader │────▶│    Parser    │────▶│   LogEntry[]    │
-│  (streaming)│     │  (IParser)   │     │                 │
+│  FileReader │────▶│    Parser    │────▶│     Indexer     │
+│  (streaming)│     │  (IParser)   │     │  (hash indexes) │
 └─────────────┘     └──────────────┘     └────────┬────────┘
                                                    │
                           ┌────────────────────────┼────────────────────────┐
                           ▼                        ▼                        ▼
-                   ┌─────────────┐         ┌──────────────┐         ┌────────────────┐
-                   │SearchEngine │         │StatisticsEng │         │ Indexer (Ph.2) │
-                   └─────────────┘         └──────────────┘         └────────────────┘
+                   ┌──────────────────┐   ┌──────────────┐         ┌────────────────┐
+                   │IndexedSearchEng  │   │StatisticsEng │         │ SearchEngine   │
+                   │  (O(1) queries)  │   │              │         │ (linear scan)  │
+                   └──────────────────┘   └──────────────┘         └────────────────┘
 ```
 
 ## Log Format
@@ -52,18 +53,33 @@ Parsed fields:
 |--------------------|------------|------------|-------|
 | Parse single line  | O(n)       | O(n)       | 1     |
 | Stream file        | O(lines)   | O(1) buf   | 1     |
+| Build index        | O(n·w)     | O(n·w)     | 2     |
+| Indexed query      | O(1) avg   | O(k)       | 2     |
 | Linear search      | O(n·m)     | O(k)       | 1     |
 | Statistics         | O(n)       | O(s+e)     | 1     |
-| Indexed search     | O(1) avg   | O(n)       | 2     |
 
-*n = entry count, m = query length, k = results, s = services, e = error messages*
+*n = entry count, m = query length, k = results, w = tokens per entry, s = services, e = error messages*
+
+## Indexer Design (Phase 2)
+
+The `Indexer` maintains inverted posting lists:
+
+| Index   | Key Type   | Use Case                    |
+|---------|------------|-----------------------------|
+| Level   | `LogLevel` | `search app.log ERROR`      |
+| Service | `string`   | `search app.log AuthService`|
+| Keyword | `string`   | Tokenized message/metadata  |
+| Hour    | `int`      | Timeline and time filtering |
+
+`IndexedSearchEngine` uses hash lookups for exact matches, then falls back to
+substring scan for partial queries (e.g. `data` matching `Database`).
 
 ## Tradeoffs
 
-### Linear search vs. indexing (Phase 1)
-- **Chosen**: Linear scan for Phase 1 simplicity.
-- **Tradeoff**: O(n) per query vs. O(1) with hash index.
-- **Rationale**: Correctness and clean architecture first; indexing added in Phase 2.
+### Linear search vs. indexing (Phase 1 → 2)
+- **Phase 1**: Linear scan for simplicity and correctness.
+- **Phase 2**: Hash-based inverted index for O(1) exact-match queries.
+- **Hybrid**: `IndexedSearchEngine` uses indexes first, substring fallback for partial matches.
 
 ### In-memory storage vs. external index
 - **Chosen**: Vector storage with streaming ingestion.
@@ -76,8 +92,8 @@ Parsed fields:
 
 ## Future Phases
 
-- **Phase 2**: Hash-based indexes (level, service, keyword, timestamp)
-- **Phase 3**: Advanced statistics (percentiles, spike detection)
+- [x] Phase 2: Hash-based indexes (level, service, keyword, timestamp)
+- [ ] Phase 3: Advanced statistics (percentiles, spike detection)
 - **Phase 4**: Thread pool for parallel chunk processing
 - **Phase 5**: Live file watching with `inotify`/`kqueue`
 - **Phase 6**: JSON configuration, output formats, ignore patterns
