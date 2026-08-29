@@ -17,7 +17,7 @@ Modern systems generate enormous log volumes. Developers need fast answers:
 
 LogForge demonstrates production-grade C++ engineering: RAII, smart pointers, streaming I/O, multithreading (upcoming), indexing, benchmarking, and comprehensive testing.
 
-## Features (Phase 1–3)
+## Features (Phase 1–4)
 
 - **Streaming parser** — process files larger than system memory
 - **Structured parsing** — timestamp, level, service, message, metadata
@@ -25,6 +25,7 @@ LogForge demonstrates production-grade C++ engineering: RAII, smart pointers, st
 - **Search** — indexed exact-match with substring fallback
 - **Statistics** — error/warn/info counts, top services, top errors, hourly timeline
 - **Advanced analytics** — error rates, volume percentiles, failure spike detection
+- **Parallel parsing** — multithreaded chunk-based file processing via thread pool
 - **CLI** — `stats`, `search`, `timeline`, `top-errors`, `top-services`, `error-rate`, `spikes`
 
 ## Architecture
@@ -34,7 +35,8 @@ LogForge/
 ├── include/logforge/     # Public headers
 │   ├── core/             # LogEntry, LogLevel
 │   ├── parser/           # IParser, Parser
-│   ├── io/               # IFileReader, FileReader
+│   ├── io/               # FileReader, ParallelFileReader
+│   ├── concurrency/      # ThreadPool
 │   ├── index/            # IIndexer, Indexer
 │   ├── search/           # ISearchEngine, SearchEngine, IndexedSearchEngine
 │   ├── stats/            # StatisticsEngine, AdvancedStatisticsEngine
@@ -140,7 +142,7 @@ YYYY-MM-DD HH:MM:SS LEVEL ServiceName message text [key=value ...]
 | Language | C++20, constexpr, enum class, std::optional, string_view |
 | Architecture | SOLID, dependency injection, interface segregation |
 | Memory | RAII, smart pointers, move semantics, streaming |
-| Concurrency | Thread pool (Phase 4) |
+| Concurrency | Thread pool, parallel chunk processing |
 | Data Structures | unordered_map, vector, hash-based indexing (Phase 2) |
 | Tooling | CMake, GoogleTest, Google Benchmark, clang-format, clang-tidy |
 | CI/CD | GitHub Actions (Linux, macOS, Windows) |
@@ -155,7 +157,7 @@ LogForge uses streaming I/O with a 64 KB read buffer. The parser operates in O(n
 - [x] Phase 1: Parser, streaming, search, statistics, CLI
 - [x] Phase 2: Hash-based indexing for O(1) queries
 - [x] Phase 3: Advanced statistics and spike detection
-- [ ] Phase 4: Multithreaded chunk processing with thread pool
+- [x] Phase 4: Multithreaded chunk processing with thread pool
 - [ ] Phase 5: Live file monitoring (`watch` command)
 - [ ] Phase 6: JSON configuration and output formats
 

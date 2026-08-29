@@ -25,6 +25,11 @@ LogForge is a high-performance log analytics engine built with Modern C++20. It 
                    │IndexedSearchEng  │   │StatisticsEng │         │ SearchEngine   │
                    │  (O(1) queries)  │   │              │         │ (linear scan)  │
                    └──────────────────┘   └──────────────┘         └────────────────┘
+                                                   ▲
+┌──────────────────────┐     ┌─────────────────────┴──────────────────────┐
+│  ParallelFileReader  │────▶│              ThreadPool (Phase 4)          │
+│  (chunk-based parse) │     └────────────────────────────────────────────┘
+└──────────────────────┘
 ```
 
 ## Log Format
@@ -58,8 +63,9 @@ Parsed fields:
 | Linear search      | O(n·m)     | O(k)       | 1     |
 | Statistics         | O(n)       | O(s+e)     | 1     |
 | Advanced stats     | O(n)       | O(s+m+24)  | 3     |
+| Parallel parse     | O(n/p)     | O(n)       | 4     |
 
-*n = entry count, m = messages, s = services, e = error messages*
+*n = entry count, p = thread count, m = messages, s = services*
 
 ## Indexer Design (Phase 2)
 
@@ -74,6 +80,19 @@ The `Indexer` maintains inverted posting lists:
 
 `IndexedSearchEngine` uses hash lookups for exact matches, then falls back to
 substring scan for partial queries (e.g. `data` matching `Database`).
+
+## Parallel Parsing (Phase 4)
+
+`ParallelFileReader` splits files into newline-aligned byte chunks and dispatches
+each chunk to `ThreadPool` workers. Results are merged in chunk order with
+sequential line numbers reassigned during merge.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `num_threads` | `hardware_concurrency()` | Worker thread count |
+| `min_parallel_bytes` | 64 KB | Serial fallback below this size |
+
+Falls back to `FileReader` for small files where thread overhead exceeds benefit.
 
 ## Advanced Statistics (Phase 3)
 
@@ -110,6 +129,6 @@ minimum of 2 errors to avoid false positives on low-volume uniform distributions
 
 - [x] Phase 2: Hash-based indexes (level, service, keyword, timestamp)
 - [x] Phase 3: Advanced statistics (percentiles, spike detection)
-- **Phase 4**: Thread pool for parallel chunk processing
+- [x] Phase 4: Thread pool for parallel chunk processing
 - **Phase 5**: Live file watching with `inotify`/`kqueue`
 - **Phase 6**: JSON configuration, output formats, ignore patterns
