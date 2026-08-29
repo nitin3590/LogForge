@@ -1,0 +1,17 @@
+2026-08-29 10:15:22 INFO AuthService User login successful user=145
+2026-08-29 10:15:25 ERROR PaymentService Database timeout transaction=8932
+2026-08-29 10:15:27 WARN InventoryService Low stock item=1234
+2026-08-29 10:15:30 INFO AuthService User logout user=145
+2026-08-29 10:15:35 ERROR PaymentService Payment declined card=****1234
+2026-08-29 10:15:40 INFO OrderService Order created order=5678
+2026-08-29 10:16:00 ERROR AuthService Invalid credentials user=999
+2026-08-29 10:16:05 WARN PaymentService Retry attempt transaction=8933
+2026-08-29 10:16:10 DEBUG InventoryService Stock check item=1234 qty=5
+2026-08-29 10:16:15 INFO NotificationService Email sent user=145 template=welcome
+2026-08-29 11:00:00 ERROR PaymentService Database timeout transaction=8934
+2026-08-29 11:00:05 ERROR PaymentService Database timeout transaction=8935
+2026-08-29 11:00:10 WARN AuthService Multiple failed logins user=888
+2026-08-29 11:00:15 INFO OrderService Order shipped order=5678
+2026-08-29 12:00:00 ERROR InventoryService Sync failed warehouse=west
+2026-08-29 12:00:05 FATAL PaymentService Circuit breaker open service=payments
+2026-08-29 12:00:10 TRACE OrderService Request trace_id=abc123
