@@ -48,6 +48,7 @@ add_library(logforge_lib
     src/search/search_engine.cpp
     src/search/indexed_search_engine.cpp
     src/stats/statistics_engine.cpp
+    src/stats/advanced_statistics_engine.cpp
     src/cli/cli.cpp
 )
 

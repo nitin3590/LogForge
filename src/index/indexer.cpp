@@ -1,26 +1,13 @@
 #include "logforge/index/indexer.hpp"
 
 #include <cctype>
-#include <chrono>
 
 #include "logforge/core/string_utils.hpp"
+#include "logforge/core/time_utils.hpp"
 
 namespace logforge {
 
 namespace {
-
-[[nodiscard]] int hour_of_day(const std::chrono::system_clock::time_point& tp) {
-    const auto time_t_val = std::chrono::system_clock::to_time_t(tp);
-    std::tm tm_val{};
-
-#if defined(_WIN32)
-    gmtime_s(&tm_val, &time_t_val);
-#else
-    gmtime_r(&time_t_val, &tm_val);
-#endif
-
-    return tm_val.tm_hour;
-}
 
 void tokenize_into(std::string_view text, std::vector<std::string>& tokens) {
     std::size_t pos = 0;
