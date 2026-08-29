@@ -13,6 +13,7 @@
 #include "logforge/io/file_reader.hpp"
 #include "logforge/parser/parser.hpp"
 #include "logforge/search/indexed_search_engine.hpp"
+#include "logforge/stats/advanced_statistics_engine.hpp"
 #include "logforge/stats/statistics_engine.hpp"
 
 namespace logforge {
@@ -28,6 +29,8 @@ void print_usage() {
         << "  logforge timeline <file>           Show hourly log frequency\n"
         << "  logforge top-errors <file>         Show most common error messages\n"
         << "  logforge top-services <file>       Show services with most log entries\n"
+        << "  logforge error-rate <file>         Show error rates by hour and service\n"
+        << "  logforge spikes <file>             Detect failure spikes in hourly data\n"
         << "  logforge watch <file>              Monitor file for new log entries (Phase 5)\n";
 }
 
@@ -42,16 +45,25 @@ void print_usage() {
     return items;
 }
 
-void print_stats(const LogStatistics& stats) {
+void print_stats(const LogStatistics& stats, const AdvancedStatistics& advanced) {
+    std::cout << std::fixed << std::setprecision(1);
     std::cout << "=== Log Statistics ===\n"
-              << "Total entries: " << stats.total_entries << "\n\n"
+              << "Total entries: " << stats.total_entries << "\n"
+              << "Error rate:    " << (advanced.overall_error_rate * 100.0) << "%\n"
+              << "Warning rate:  " << (advanced.overall_warning_rate * 100.0) << "%\n"
+              << "Peak errors:   " << advanced.peak_error_count << " at hour "
+              << advanced.peak_error_hour << ":00\n\n"
               << "By Level:\n"
               << "  ERROR: " << stats.error_count << "\n"
               << "  WARN:  " << stats.warn_count << "\n"
               << "  INFO:  " << stats.info_count << "\n"
               << "  DEBUG: " << stats.debug_count << "\n"
               << "  TRACE: " << stats.trace_count << "\n"
-              << "  FATAL: " << stats.fatal_count << "\n";
+              << "  FATAL: " << stats.fatal_count << "\n\n"
+              << "Hourly Volume Percentiles:\n"
+              << "  p50: " << advanced.volume_p50 << "\n"
+              << "  p90: " << advanced.volume_p90 << "\n"
+              << "  p99: " << advanced.volume_p99 << "\n";
 }
 
 void print_timeline(const LogStatistics& stats) {
@@ -86,6 +98,42 @@ void print_top_services(const LogStatistics& stats, std::size_t limit = 10) {
     }
 }
 
+void print_error_rate(const AdvancedStatistics& advanced) {
+    std::cout << std::fixed << std::setprecision(1);
+    std::cout << "=== Error Rate by Hour ===\n";
+    for (const auto& hour : advanced.hourly_metrics) {
+        if (hour.total_count == 0) {
+            continue;
+        }
+        std::cout << std::setw(2) << std::setfill('0') << hour.hour << ":00  "
+                  << (hour.error_rate * 100.0) << "% (" << hour.error_count << "/"
+                  << hour.total_count << ")\n";
+    }
+
+    std::cout << "\n=== Error Rate by Service ===\n";
+    for (const auto& service : advanced.service_metrics) {
+        if (service.error_count == 0) {
+            continue;
+        }
+        std::cout << "  " << service.service << ": " << (service.error_rate * 100.0) << "% ("
+                  << service.error_count << "/" << service.total_count << ")\n";
+    }
+}
+
+void print_spikes(const AdvancedStatistics& advanced) {
+    std::cout << std::fixed << std::setprecision(1);
+    std::cout << "=== Failure Spikes ===\n";
+    if (advanced.detected_spikes.empty()) {
+        std::cout << "  No failure spikes detected.\n";
+        return;
+    }
+    for (const auto& spike : advanced.detected_spikes) {
+        std::cout << "  Hour " << std::setw(2) << std::setfill('0') << spike.hour << ":00  "
+                  << spike.error_count << " errors (" << spike.deviation_factor
+                  << "x above average of " << spike.average_error_count << ")\n";
+    }
+}
+
 }  // namespace
 
 struct CLI::Impl {
@@ -94,6 +142,7 @@ struct CLI::Impl {
     Indexer indexer;
     IndexedSearchEngine search_engine{indexer};
     StatisticsEngine stats_engine;
+    AdvancedStatisticsEngine advanced_stats_engine;
 };
 
 CLI::CLI() : impl_(new Impl()) {}
@@ -140,7 +189,9 @@ int CLI::run(int argc, char* argv[]) {
     spdlog::info("Parsed and indexed {} entries from {}", entry_count, log_file.string());
 
     if (command == "stats") {
-        print_stats(impl_->stats_engine.compute(indexed_entries));
+        const auto stats = impl_->stats_engine.compute(indexed_entries);
+        const auto advanced = impl_->advanced_stats_engine.compute(indexed_entries);
+        print_stats(stats, advanced);
         return 0;
     }
 
@@ -170,6 +221,16 @@ int CLI::run(int argc, char* argv[]) {
 
     if (command == "top-services") {
         print_top_services(impl_->stats_engine.compute(indexed_entries));
+        return 0;
+    }
+
+    if (command == "error-rate") {
+        print_error_rate(impl_->advanced_stats_engine.compute(indexed_entries));
+        return 0;
+    }
+
+    if (command == "spikes") {
+        print_spikes(impl_->advanced_stats_engine.compute(indexed_entries));
         return 0;
     }
 
