@@ -57,8 +57,9 @@ Parsed fields:
 | Indexed query      | O(1) avg   | O(k)       | 2     |
 | Linear search      | O(n·m)     | O(k)       | 1     |
 | Statistics         | O(n)       | O(s+e)     | 1     |
+| Advanced stats     | O(n)       | O(s+m+24)  | 3     |
 
-*n = entry count, m = query length, k = results, w = tokens per entry, s = services, e = error messages*
+*n = entry count, m = messages, s = services, e = error messages*
 
 ## Indexer Design (Phase 2)
 
@@ -73,6 +74,21 @@ The `Indexer` maintains inverted posting lists:
 
 `IndexedSearchEngine` uses hash lookups for exact matches, then falls back to
 substring scan for partial queries (e.g. `data` matching `Database`).
+
+## Advanced Statistics (Phase 3)
+
+`AdvancedStatisticsEngine` extends basic counts with:
+
+| Metric | Description |
+|--------|-------------|
+| Error/warning rates | Overall and per-service percentages |
+| Hourly error rates | Failure rate per hour-of-day |
+| Volume percentiles | p50, p90, p99 of hourly log volume |
+| Spike detection | Hours with error count ≥ 2× mean (min 2 errors) |
+| Message frequency | Counts for all messages, not just errors |
+
+Spike detection uses deviation from the 24-hour mean error count, requiring a
+minimum of 2 errors to avoid false positives on low-volume uniform distributions.
 
 ## Tradeoffs
 
@@ -93,7 +109,7 @@ substring scan for partial queries (e.g. `data` matching `Database`).
 ## Future Phases
 
 - [x] Phase 2: Hash-based indexes (level, service, keyword, timestamp)
-- [ ] Phase 3: Advanced statistics (percentiles, spike detection)
+- [x] Phase 3: Advanced statistics (percentiles, spike detection)
 - **Phase 4**: Thread pool for parallel chunk processing
 - **Phase 5**: Live file watching with `inotify`/`kqueue`
 - **Phase 6**: JSON configuration, output formats, ignore patterns

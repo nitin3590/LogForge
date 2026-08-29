@@ -17,14 +17,15 @@ Modern systems generate enormous log volumes. Developers need fast answers:
 
 LogForge demonstrates production-grade C++ engineering: RAII, smart pointers, streaming I/O, multithreading (upcoming), indexing, benchmarking, and comprehensive testing.
 
-## Features (Phase 1–2)
+## Features (Phase 1–3)
 
 - **Streaming parser** — process files larger than system memory
 - **Structured parsing** — timestamp, level, service, message, metadata
 - **Hash-based indexing** — O(1) queries by level, service, keyword, and hour
 - **Search** — indexed exact-match with substring fallback
 - **Statistics** — error/warn/info counts, top services, top errors, hourly timeline
-- **CLI** — `stats`, `search`, `timeline`, `top-errors`, `top-services`
+- **Advanced analytics** — error rates, volume percentiles, failure spike detection
+- **CLI** — `stats`, `search`, `timeline`, `top-errors`, `top-services`, `error-rate`, `spikes`
 
 ## Architecture
 
@@ -36,7 +37,7 @@ LogForge/
 │   ├── io/               # IFileReader, FileReader
 │   ├── index/            # IIndexer, Indexer
 │   ├── search/           # ISearchEngine, SearchEngine, IndexedSearchEngine
-│   ├── stats/            # IStatisticsEngine, StatisticsEngine
+│   ├── stats/            # StatisticsEngine, AdvancedStatisticsEngine
 │   └── cli/              # CLI
 ├── src/                  # Implementations
 ├── tests/                # GoogleTest unit tests
@@ -98,6 +99,12 @@ cmake --build build --target logforge_bench
 
 # Top services by volume
 ./build/logforge top-services sample_logs/app.log
+
+# Error rates by hour and service
+./build/logforge error-rate sample_logs/app.log
+
+# Detect failure spikes
+./build/logforge spikes sample_logs/app.log
 ```
 
 ### Example Output
@@ -147,7 +154,7 @@ LogForge uses streaming I/O with a 64 KB read buffer. The parser operates in O(n
 
 - [x] Phase 1: Parser, streaming, search, statistics, CLI
 - [x] Phase 2: Hash-based indexing for O(1) queries
-- [ ] Phase 3: Advanced statistics and spike detection
+- [x] Phase 3: Advanced statistics and spike detection
 - [ ] Phase 4: Multithreaded chunk processing with thread pool
 - [ ] Phase 5: Live file monitoring (`watch` command)
 - [ ] Phase 6: JSON configuration and output formats
