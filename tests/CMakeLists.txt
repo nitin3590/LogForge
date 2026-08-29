@@ -4,7 +4,9 @@ add_executable(logforge_tests
     test_log_level.cpp
     test_parser.cpp
     test_file_reader.cpp
+    test_indexer.cpp
     test_search.cpp
+    test_indexed_search.cpp
     test_statistics.cpp
 )
 
